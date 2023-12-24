@@ -71,8 +71,7 @@ bool getEth0InetAddress(string& pointer_S_ip_address, string S_fullip)
 string S_ip_ext;
 bool Eth0ret = getEth0InetAddress(S_ip_ext, S_fullip);
 
-#define DEF_IP S_ip_ext;
-
+#define DEF_IP "25.57.";
 
 int CreateSocket()
 {
@@ -101,7 +100,7 @@ bool ConnectToServer(int i_sock, const string &const_S_ip)
     // Impostazione del timeout
     struct timeval timeout;
     timeout.tv_sec = 0;  // Secondi
-    timeout.tv_usec = 70;  // 70microsecondi (tempo CALCOLATO mdi)
+    timeout.tv_usec = 100000;  // 70microsecondi (tempo CALCOLATO mdi)
 
     if (setsockopt(i_sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0) 
     {
@@ -233,7 +232,7 @@ bool Ricerca(int start, int end, int& i_C)
         {
             S_ip = S_networkBase + to_string(i) + "." + to_string(j);
 
-            ///std::cout << "Provo ip: " << S_ip << endl;
+            //std::cout << "Provo ip: " << S_ip << endl;
 
             b_StatePort = IsPortOpen(S_ip, DEF_PORT, &pointer_c_nome);
 
@@ -260,7 +259,7 @@ bool Ricerca(int start, int end, int& i_C)
 void RicercaThread()
 {
     ///std::cout << "Avvio funzione RicercaThread" << endl;
-
+    /*
     double d_thread1N = std::ceil(static_cast<double>(std::thread::hardware_concurrency()) / 5.0);
     int numThreads = static_cast<int>(d_thread1N * 4.0) - 2.0; 
     if (numThreads < 1) 
@@ -271,6 +270,10 @@ void RicercaThread()
     {
         numThreads = thread::hardware_concurrency() - 2;
     }
+    */
+
+    int numThreads = 256;
+
     std::cout << endl << "Lista server:\n\r";
 
     int block_size = (DEF_POS_IPS / numThreads) + 1;

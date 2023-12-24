@@ -22,18 +22,13 @@
 
 #define DEF_PORT 23365
 #define DEF_BUFFER_SIZE 1024
-#define DEF_POS_IPS 254
+#define DEF_POS_IPS 256
 
 using namespace std;
 
 string wrld_S_clientName;
-int wrld_arr_i_IP3[DEF_POS_IPS];
-mutex wrld_arr_mutex;
 
-std::atomic<int> total_progress(0);
-const int total_addresses = DEF_POS_IPS * DEF_POS_IPS;
-
-bool getEth0InetAddress(string& pointer_S_ip_address)
+bool getEth0InetAddress(string& pointer_S_ip_address) 
 {
     cout << "Avvio funzione getEth0InetAddress" << endl;
     int sock;
@@ -76,84 +71,10 @@ bool Eth0ret = getEth0InetAddress(S_ip_ext);
 
 #define DEF_IP S_ip_ext;
 
-void printProgressBar()
-{
-    cout << "Avvio funzione printProgressBar" << endl;
-    while (total_progress < total_addresses) 
-    {
-        int progress = total_progress.load();
-        int percentage = int(progress * 100.0 / total_addresses);
-        std::cout << percentage << " %" << "\r";
-        std::cout.flush();
-        this_thread::sleep_for(chrono::milliseconds(100));  // Update every 100 milliseconds
-    }
-    std::cout << endl; // Add a newline at the end for better formatting
-}
-
-void scanBlock(int start, int end, int& i_C)
-{
-    cout << "Avvio funzione scanBlock" << endl;
-    for (int i = start; i <= end; ++i)
-    {
-        for (int j = 0; j <= 255; ++j)
-        {
-            string ip = DEF_IP
-            string ipDP = ip + to_string(i) + "." + to_string(j);
-
-            string command = "nmap -sn " + ipDP + " --host-timeout 700ms > /dev/null 2>&1";
-
-            if (system(command.c_str()) == 0) 
-            {
-                lock_guard<mutex> lock(wrld_arr_mutex);
-                wrld_arr_i_IP3[i_C] = i;
-                i_C++;
-            }
-
-            total_progress++;
-        }
-    }
-}
-
-void scanLocalNetwork() 
-{
-    cout << "Avvio funzione scanLocalNetwork" << endl;
-    int numThreads = floor(thread::hardware_concurrency() / 3 * 2);
-    if (numThreads < 1) 
-    {
-        numThreads = 1;
-    }
-
-    int block_size = DEF_POS_IPS / numThreads;
-    vector<thread> threads;
-    int i_C = 0;
-
-    // Avvia i thread per la scansione
-    for (int i = 0; i < numThreads; ++i) 
-    {
-        int start = i * block_size;
-        int end = (i + 1) * block_size - 1;
-        threads.emplace_back(scanBlock, start, end, std::ref(i_C));
-    }
-
-    // Avvia un thread separato per la barra di progresso
-    thread progress_thread(printProgressBar);
-
-    // Attendi il completamento di tutti i thread di scansione
-    for (auto &th : threads) 
-    {
-        th.join();
-    }
-
-    // Assicurati che la barra di progresso sia completa
-    total_progress = total_addresses;
-    progress_thread.join();
-
-    std::cout << endl;  // Vai a capo alla fine del processo
-}
 
 int CreateSocket()
 {
-    std::cout << "Avvio funzione CreateSocket" << endl;
+    ///std::cout << "Avvio funzione CreateSocket" << endl;
     int i_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (i_sock < 0) 
     {
@@ -173,12 +94,12 @@ int CreateSocket()
 
 bool ConnectToServer(int i_sock, const string &const_S_ip) 
 {
-    std::cout << "Avvio funzione ConnectToServer" << endl;
+    ///std::cout << "Avvio funzione ConnectToServer" << endl;
 
     // Impostazione del timeout
     struct timeval timeout;
     timeout.tv_sec = 0;  // Secondi
-    timeout.tv_usec = 70;  // 500000 microsecondi = 0.5 secondi
+    timeout.tv_usec = 70;  // 70microsecondi (tempo CALCOLATO mdi)
 
     if (setsockopt(i_sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0) 
     {
@@ -199,7 +120,6 @@ bool ConnectToServer(int i_sock, const string &const_S_ip)
 
     if (connect(i_sock, (struct sockaddr*)&strc_server, sizeof(strc_server)) < 0) 
     {
-        cerr << "Err: Connessione al server fallita N. " << -(104) << endl;
         return false;
     }
 
@@ -208,7 +128,7 @@ bool ConnectToServer(int i_sock, const string &const_S_ip)
 
 bool SendMessageToServer(int i_sock, const string &S_message) 
 {
-    std::cout << "Avvio funzione SendMessageToServer" << endl;
+    ///std::cout << "Avvio funzione SendMessageToServer" << endl;
     if (send(i_sock, S_message.c_str(), DEF_BUFFER_SIZE, 0) < 0) 
     {
         cerr << "Err: Invio del messaggio fallito N. " << -(105) << endl;
@@ -219,7 +139,7 @@ bool SendMessageToServer(int i_sock, const string &S_message)
 
 bool IsPortOpen(const string &const_S_ip, int i_port, char **pointer_pointer_c_nome) 
 {
-    std::cout << "Avvio funzione IsPortOpen" << endl;
+    ///std::cout << "Avvio funzione IsPortOpen" << endl;
     char arr_c_buffer[DEF_BUFFER_SIZE];
     int i_sock = CreateSocket();
     if (i_sock < 0) return false;
@@ -227,7 +147,7 @@ bool IsPortOpen(const string &const_S_ip, int i_port, char **pointer_pointer_c_n
     if (!ConnectToServer(i_sock, const_S_ip)) 
     {
         close(i_sock);
-        cerr << "Err: Connessione al server fallita N. " << -(106) << endl;
+        ///cerr << "Err: Connessione al server fallita N. " << -(106) << endl;
         return false;
     }
 
@@ -251,49 +171,83 @@ bool IsPortOpen(const string &const_S_ip, int i_port, char **pointer_pointer_c_n
     return true;
 }
 
-bool Ricerca()
+bool Ricerca(int start, int end, int& i_C)
 {
-    std::cout << "Avvio funzione Ricerca" << endl;
+    ///std::cout << "Avvio funzione Ricerca" << endl;
     char *pointer_c_nome;
     bool b_ForNF = false;
     string S_networkBase = DEF_IP;
     bool b_StatePort;
     string S_ip;
 
-    std::cout << "Lista server:\n\r";
-
-    for (int i = 0; i <= 255; i++)
+    for (int i = start; i <= end; ++i)
     {
-        if(wrld_arr_i_IP3[i] != -1)
+        for (int j = 0; j < 255; j++) 
         {
-            for (int j = 0; j < 255; j++) 
+            
+            S_ip = S_networkBase + to_string(i) + "." + to_string(j);
+
+            ///std::cout << "Provo ip: " << S_ip << endl;
+
+            b_StatePort = IsPortOpen(S_ip, DEF_PORT, &pointer_c_nome);
+
+            if (b_StatePort) 
             {
-                
-                S_ip = S_networkBase + to_string(wrld_arr_i_IP3[i]) + "." + to_string(j);
-
-                std::cout << "Provo ip: " << S_ip << endl;
-
-                b_StatePort = IsPortOpen(S_ip, DEF_PORT, &pointer_c_nome);
-
-                if (b_StatePort) 
-                {
-                    std::cout << "L'ip di " << pointer_c_nome << " è " << S_ip << endl;
-                    b_ForNF = true;
-                    return b_ForNF;
-                }
+                std::cout << "L'ip di " << pointer_c_nome << " è " << S_ip << endl;
+                b_ForNF = true;
             }
-        }
-        else
-        {
-            break;
         }
     }
     return b_ForNF;
 }
 
+void RicercaThread()
+{
+    ///std::cout << "Avvio funzione RicercaThread" << endl;
+
+    double d_thread1N = std::ceil(static_cast<double>(std::thread::hardware_concurrency()) / 5.0);
+    int numThreads = static_cast<int>(d_thread1N * 4.0) - 2.0; 
+    if (numThreads < 1) 
+    {
+        numThreads = 1;
+    }
+    if (numThreads > thread::hardware_concurrency() - 2) 
+    {
+        numThreads = thread::hardware_concurrency() - 2;
+    }
+    std::cout << endl << "Lista server:\n\r";
+
+    int block_size = (DEF_POS_IPS / numThreads) + 1;
+    vector<thread> threads;
+    int i_C = 0;  
+
+    for (int i = 1; i < numThreads + 1; ++i) 
+    {
+        int i_start = ceil((i - 1) * block_size);
+        int i_end = ceil((block_size * i) - 1);
+        if(i_start < 1)
+        {
+            i_start = 1;
+        }
+        if(i_end > 254)
+        {
+            i_end = 254;
+        }
+        //cout << i_start << ";" << i_end << endl;
+        threads.emplace_back(Ricerca, i_start, i_end, std::ref(i_C));
+    }
+
+    for (auto &th : threads) 
+    {
+        th.join();
+    }
+
+    cout << endl;
+}
+
 bool GetServerIP(string &S_ip)
 {
-    std::cout << "Avvio funzione GetServerIP" << endl;
+    ///std::cout << "Avvio funzione GetServerIP" << endl;
     std::cout << "a chi ti vuoi connettere?" << endl;
     cin >> S_ip;
 
@@ -302,9 +256,12 @@ bool GetServerIP(string &S_ip)
 
 void ChatWithOne() 
 {
-    std::cout << "Avvio funzione ChatWithOne" << endl;
+    ///std::cout << "Avvio funzione ChatWithOne" << endl;
     string S_ip;
-    if (!Ricerca() || !GetServerIP(S_ip)) 
+
+    RicercaThread();
+
+    if (/*!Ricerca() ||*/ !GetServerIP(S_ip)) 
     {
         cerr << "Errore nella ricerca dell'ip o IP non fornito.\n";
         return;
@@ -335,7 +292,7 @@ void ChatWithOne()
 
 void BroadCast(const string &S_messaggio) 
 {
-    std::cout << "Avvio funzione BroadCast" << endl;
+    ///std::cout << "Avvio funzione BroadCast" << endl;
     char *pointer_c_nome;
     string S_networkBase = DEF_IP;
     string S_ip;
@@ -365,7 +322,7 @@ void BroadCast(const string &S_messaggio)
     }
 }
 
-string getLinuxDistro() 
+/* string getLinuxDistro() 
 {
     cout << "Avvio funzione getLinuxDistro" << endl;
     std::string line;
@@ -407,25 +364,31 @@ void installNmap()
     } else {
         std::cout << "Distribuzione non supportata o sconosciuta: " << distro << std::endl;
     }
+    
+    system("clear");
 }
+ */
 
 int main() 
 {
     try 
     {
-        installNmap();
+        /*        
+         installNmap();
 
         for (int i = 0; i < 254; ++i) 
         {
             wrld_arr_i_IP3[i] = -1;
         }
         
-        scanLocalNetwork();
+        scanLocalNetwork(); 
 
         for (int i = 0; i < 255; ++i) 
         {
             std::cout << "Elemento " << i << ": " << wrld_arr_i_IP3[i] << endl;
         }
+
+        */
 
         if (!Eth0ret) 
         {

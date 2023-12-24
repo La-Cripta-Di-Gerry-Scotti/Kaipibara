@@ -71,7 +71,7 @@ bool getEth0InetAddress(string& pointer_S_ip_address, string S_fullip)
 string S_ip_ext;
 bool Eth0ret = getEth0InetAddress(S_ip_ext, S_fullip);
 
-#define DEF_IP "25.57.";
+#define DEF_IP S_ip_ext;
 
 int CreateSocket()
 {

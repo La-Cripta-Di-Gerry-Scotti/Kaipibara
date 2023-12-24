@@ -25,10 +25,10 @@
 #define DEF_POS_IPS 256
 
 using namespace std;
-
 string wrld_S_clientName;
+string S_fullip;
 
-bool getEth0InetAddress(string& pointer_S_ip_address) 
+bool getEth0InetAddress(string& pointer_S_ip_address, string S_fullip) 
 {
     cout << "Avvio funzione getEth0InetAddress" << endl;
     int sock;
@@ -53,13 +53,13 @@ bool getEth0InetAddress(string& pointer_S_ip_address)
     close(sock);
 
     auto* ip_addr = (struct sockaddr_in*)&strc_ifreq.ifr_addr;
-    string full_ip = inet_ntoa(ip_addr->sin_addr);
+    S_fullip = inet_ntoa(ip_addr->sin_addr);
 
-    size_t second_dot = full_ip.find('.', full_ip.find('.') + 1);
+    size_t second_dot = S_fullip.find('.', S_fullip.find('.') + 1);
 
     if (second_dot != string::npos) 
     {
-        pointer_S_ip_address = full_ip.substr(0, second_dot + 1);
+        pointer_S_ip_address = S_fullip.substr(0, second_dot + 1);
         return true;
     }
 
@@ -67,7 +67,7 @@ bool getEth0InetAddress(string& pointer_S_ip_address)
 }
 
 string S_ip_ext;
-bool Eth0ret = getEth0InetAddress(S_ip_ext);
+bool Eth0ret = getEth0InetAddress(S_ip_ext, S_fullip);
 
 #define DEF_IP S_ip_ext;
 
@@ -184,7 +184,6 @@ bool Ricerca(int start, int end, int& i_C)
     {
         for (int j = 0; j < 255; j++) 
         {
-            
             S_ip = S_networkBase + to_string(i) + "." + to_string(j);
 
             ///std::cout << "Provo ip: " << S_ip << endl;
@@ -193,7 +192,15 @@ bool Ricerca(int start, int end, int& i_C)
 
             if (b_StatePort) 
             {
-                std::cout << "L'ip di " << pointer_c_nome << " è " << S_ip << endl;
+                std::cout << "L'ip di " << pointer_c_nome << " è " << S_ip;
+                if(strcmp(S_ip.c_str(), S_fullip.c_str()) == 0)
+                {
+                    cout << " <-- Questo è il tuo server" << endl;
+                }
+                else
+                {
+                    cout << endl;
+                }
                 b_ForNF = true;
             }
         }
@@ -261,7 +268,7 @@ void ChatWithOne()
 
     RicercaThread();
 
-    if (/*!Ricerca() ||*/ !GetServerIP(S_ip)) 
+    if (!GetServerIP(S_ip)) 
     {
         cerr << "Errore nella ricerca dell'ip o IP non fornito.\n";
         return;
@@ -322,73 +329,10 @@ void BroadCast(const string &S_messaggio)
     }
 }
 
-/* string getLinuxDistro() 
-{
-    cout << "Avvio funzione getLinuxDistro" << endl;
-    std::string line;
-    std::ifstream infile("/etc/os-release");
-    while (std::getline(infile, line)) 
-    {
-        // Cerca la linea che specifica l'ID della distribuzione
-        if (line.rfind("ID=", 0) == 0) 
-    { // assicurati che la linea inizi con "ID="
-            // Estrai il valore dopo "ID="
-            std::string distroId = line.substr(3);
-
-            // Rimuovi le virgolette se presenti
-            distroId.erase(std::remove(distroId.begin(), distroId.end(), '\"'), distroId.end());
-
-            return distroId;
-        }
-    }
-    return "unknown";
-}
-
-void installNmap() 
-{
-    cout << "Avvio funzione installNmap" << endl;
-    std::string distro = getLinuxDistro();
-    
-    if (distro == "ubuntu" || distro == "debian") 
-    {
-        system("sudo apt-get install -y nmap");
-    } else if (distro == "fedora" || distro == "centos" || distro == "rhel") 
-    {
-        system("sudo dnf install -y nmap");
-    } else if (distro == "arch" || distro == "manjaro") 
-    {
-        system("sudo pacman -S nmap");
-    } else if (distro == "opensuse" || distro == "sles") 
-    {
-        system("sudo zypper install -y nmap");
-    } else {
-        std::cout << "Distribuzione non supportata o sconosciuta: " << distro << std::endl;
-    }
-    
-    system("clear");
-}
- */
-
 int main() 
 {
     try 
     {
-        /*        
-         installNmap();
-
-        for (int i = 0; i < 254; ++i) 
-        {
-            wrld_arr_i_IP3[i] = -1;
-        }
-        
-        scanLocalNetwork(); 
-
-        for (int i = 0; i < 255; ++i) 
-        {
-            std::cout << "Elemento " << i << ": " << wrld_arr_i_IP3[i] << endl;
-        }
-
-        */
 
         if (!Eth0ret) 
         {

@@ -19,14 +19,16 @@
 #include <cmath>
 #include <fstream>
 
+using namespace std; 
 
 #define DEF_PORT 23365
 #define DEF_BUFFER_SIZE 1024
 #define DEF_POS_IPS 256
+#define DEF_KEY "pietrocarotighelli"
 
-using namespace std;
 string wrld_S_clientName;
 string S_fullip;
+
 
 bool getEth0InetAddress(string& pointer_S_ip_address, string S_fullip) 
 {
@@ -126,9 +128,54 @@ bool ConnectToServer(int i_sock, const string &const_S_ip)
     return true;
 }
 
+int IdentifyLetter(char a)
+{
+    char lett[26] = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
+
+    for (int i = 0; i < 26; i++)
+    { 
+        if (lett[i] == toupper(a)) // Converti il carattere in maiuscolo prima di confrontarlo
+        {
+            return i;
+        }
+    }
+    return -1; // Ritorna -1 se il carattere non è una lettera dell'alfabeto
+}
+
+bool CryptMessage(const std::string S_message, const std::string key, std::string &crypted_S_message)
+{
+    char lett[26] = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
+    int S_messageLength = S_message.length();
+
+    char arr_key[S_messageLength]; // Array per conservare la chiave
+
+    for (int i = 0; i < S_messageLength; i++)
+    {
+        arr_key[i] = key[i % 4];
+    }
+
+    for (int i = 0; i < S_messageLength; i++)
+    {
+        char c = toupper(S_message[i]); // Converti il carattere in maiuscolo
+        int ChangeValue = IdentifyLetter(c);
+
+        if (ChangeValue != -1)
+        {
+            crypted_S_message += lett[(ChangeValue + i) % 26]; // Cripta il carattere e aggiungilo al messaggio criptato
+        }
+        else
+        {
+            // Se il carattere non è una lettera dell'alfabeto, mantienilo invariato
+            crypted_S_message += S_message[i];
+        }
+    }
+}
+
 bool SendMessageToServer(int i_sock, const string &S_message) 
 {
     ///std::cout << "Avvio funzione SendMessageToServer" << endl;
+
+
     if (send(i_sock, S_message.c_str(), DEF_BUFFER_SIZE, 0) < 0) 
     {
         cerr << "Err: Invio del messaggio fallito N. " << -(105) << endl;
@@ -190,9 +237,11 @@ bool Ricerca(int start, int end, int& i_C)
 
             b_StatePort = IsPortOpen(S_ip, DEF_PORT, &pointer_c_nome);
 
+
             if (b_StatePort) 
             {
                 std::cout << "L'ip di " << pointer_c_nome << " è " << S_ip;
+
                 if(strcmp(S_ip.c_str(), S_fullip.c_str()) == 0)
                 {
                     cout << " <-- Questo è il tuo server" << endl;

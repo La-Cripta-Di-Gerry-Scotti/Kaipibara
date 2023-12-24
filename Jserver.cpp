@@ -10,10 +10,56 @@
 #include <unistd.h>
 #include <pthread.h>
 
+#define DEF_KEY "pietrocarotighelli"
 #define DEF_BUFFER_SIZE 1024
 #define DEF_PORT 23365
 
 using namespace std;
+
+int IdentifyLetter(char a)
+{
+    char lett[26] = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
+
+    for (int i = 0; i < 26; i++)
+    { 
+        if (lett[i] == toupper(a)) // Converti il carattere in maiuscolo prima di confrontarlo
+        {
+            return i;
+        }
+    }
+    return -1; // Ritorna -1 se il carattere non è una lettera dell'alfabeto
+}
+
+bool DecryptMessage(const std::string crypted_S_message, const std::string key, std::string decrypted_message)
+{
+    char lett[26] = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
+    int crypted_messageLength = crypted_S_message.length();
+
+    char arr_key[crypted_messageLength]; // Array per conservare la chiave
+
+    for (int i = 0; i < crypted_messageLength; i++)
+    {
+        arr_key[i] = key[i % 4];
+    }
+
+    for (int i = 0; i < crypted_messageLength; i++)
+    {
+        char c = toupper(crypted_S_message[i]); // Converti il carattere in maiuscolo
+        int ChangeValue = IdentifyLetter(c);
+
+        if (ChangeValue != -1)
+        {
+            decrypted_message += lett[(ChangeValue - i) % 26]; // Decripta il carattere e aggiungilo al messaggio decriptato
+        }
+        else
+        {
+            // Se il carattere non è una lettera dell'alfabeto, mantienilo invariato
+            decrypted_message += crypted_S_message[i];
+        }
+    }
+
+    return true;
+}
 
 void printMessage(char *pointer_c_saveptr) {
     printf("%s\n\r", pointer_c_saveptr);
@@ -26,16 +72,24 @@ void sendName(int i_socket_id, string S_nome) {
 void client_service(int i_socket_id, string S_nome) 
 {
     char arr_c_buffer[DEF_BUFFER_SIZE];
+    char arr_c_DE_buffer[DEF_BUFFER_SIZE];
     char *pointer_c_request;
     char *pointer_c_saveptr;
     int i_recvRes;
 
-    while (1) {
+    while (1) 
+    {
         i_recvRes = recv(i_socket_id, (void *)arr_c_buffer, sizeof(arr_c_buffer), 0);
+
+        DecryptMessage(arr_c_buffer, DEF_KEY, arr_c_DE_buffer);
+
         if (i_recvRes <= 0) {
             close(i_socket_id);
             break;
-        } else {
+        } 
+
+        else 
+        {
             pointer_c_request = strtok_r(arr_c_buffer, "-", &pointer_c_saveptr);
 
             if (strcmp(pointer_c_request, "MESS") == 0) {
